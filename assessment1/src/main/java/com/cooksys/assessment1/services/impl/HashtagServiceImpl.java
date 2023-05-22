@@ -1,13 +1,16 @@
 package com.cooksys.assessment1.services.impl;
 
-import com.cooksys.assessment1.services.HashtagService;
-import lombok.AllArgsConstructor;
 import org.springframework.stereotype.Service;
 
+import com.cooksys.assessment1.repositories.HashtagRepository;
+import com.cooksys.assessment1.services.HashtagService;
+
+import lombok.RequiredArgsConstructor;
+
 @Service
-@AllArgsConstructor
+@RequiredArgsConstructor
 public class HashtagServiceImpl implements HashtagService {
 
-    private HashtagRepoitory hashtagRepoitory;
+    private final HashtagRepository hashtagRepository;
 
 }

@@ -1,4 +1,4 @@
-package com.cooksys.assessment1.controllers.advice;
+package com.cooksys.assessment1.controllers;
 
 import org.springframework.web.bind.annotation.ControllerAdvice;
 import org.springframework.web.bind.annotation.RequestMapping;

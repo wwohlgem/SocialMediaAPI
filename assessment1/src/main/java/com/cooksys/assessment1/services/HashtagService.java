@@ -1,4 +1,8 @@
 package com.cooksys.assessment1.services;
 
-public interface HashtagService {
+import org.springframework.data.jpa.repository.JpaRepository;
+
+import com.cooksys.assessment1.entities.Hashtag;
+
+public interface HashtagService extends JpaRepository<Hashtag, Long> {
 }
