@@ -3,31 +3,32 @@ package com.cooksys.assessment1.entities;
 import java.time.LocalDateTime;
 
 import jakarta.persistence.Column;
+import jakarta.persistence.Embedded;
 import jakarta.persistence.Entity;
 import jakarta.persistence.GeneratedValue;
 import jakarta.persistence.Id;
 import lombok.Data;
 import lombok.NoArgsConstructor;
 
-import java.sql.Timestamp;
-
-
 @Data
 @Entity
 @NoArgsConstructor
-public class Hashtag {
+public class User {
 
 	@Id
 	@GeneratedValue
 	private Long id;
 
 	@Column(nullable = false)
-	private String label;
+	private LocalDateTime joined;
 
 	@Column(nullable = false)
-	private LocalDateTime firstUsed;
+	private boolean deleted = false;
 
-	@Column(nullable = false)
-	private LocalDateTime lastUsed;
+	@Embedded
+	Credentials credentials;
+
+	@Embedded
+	Profile profile;
 
 }
