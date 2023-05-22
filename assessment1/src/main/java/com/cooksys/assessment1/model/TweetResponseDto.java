@@ -20,7 +20,7 @@ public class TweetResponseDto {
 
 	private LocalDateTime posted;
 
-	private boolean deleted;
+	private String content;
 
 	private Tweet inReplyTo;
 

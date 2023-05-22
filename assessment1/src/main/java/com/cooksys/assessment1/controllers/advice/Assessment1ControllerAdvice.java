@@ -28,7 +28,7 @@ public class Assessment1ControllerAdvice {
     }
 
     @ResponseStatus(HttpStatus.UNAUTHORIZED)
-    @ExceptionHandler(NotFoundException.class)
+    @ExceptionHandler(NotAuthorizedException.class)
     public ErrorDto handleUnauthorizedException(HttpServletRequest request, NotAuthorizedException notAuthorizedException){
         return new ErrorDto(notAuthorizedException.getMessage());
     }
