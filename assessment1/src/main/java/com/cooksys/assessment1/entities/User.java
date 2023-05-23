@@ -39,25 +39,24 @@ public class User {
 	private List<Tweet> tweets;
 
 	@Embedded
-	Credentials credentials;
+	private Credentials credentials;
 
 	@Embedded
-	Profile profile;
+	private Profile profile;
 
 	@ManyToMany
-	@JoinTable(name = "followers_following",
-		joinColumns = @JoinColumn(name = "follower_id"),
-		inverseJoinColumns = @JoinColumn(name = "following_id"))
+	@JoinTable(name = "followers_following")
 	private List<User> followers;
 	
-	@ManyToMany(mappedBy = "followers")
+	@ManyToMany
+	@JoinTable(name = "followers")
 	private List<User> following;
 	
 	@ManyToMany
 	@JoinTable(name = "user_likes",
 		joinColumns = @JoinColumn(name = "user_id"),
 		inverseJoinColumns = @JoinColumn(name = "tweet_id"))
-	private List<User> likedTweets;
+	private List<Tweet> likedTweets;
 	
 	@ManyToMany
 	@JoinTable(name = "user_mentions",
