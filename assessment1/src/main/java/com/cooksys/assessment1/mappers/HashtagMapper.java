@@ -2,11 +2,10 @@ package com.cooksys.assessment1.mappers;
 
 import java.util.List;
 
-import com.cooksys.assessment1.model.HashtagDto;
 import org.mapstruct.Mapper;
 
 import com.cooksys.assessment1.entities.Hashtag;
-import com.cooksys.assessment1.model.HashtagResponseDto;
+import com.cooksys.assessment1.model.HashtagDto;
 
 @Mapper(componentModel="spring")
 public interface HashtagMapper {

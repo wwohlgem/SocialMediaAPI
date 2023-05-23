@@ -2,7 +2,6 @@ package com.cooksys.assessment1.entities;
 
 import java.sql.Timestamp;
 import java.util.List;
-import java.util.Set;
 
 import org.hibernate.annotations.CreationTimestamp;
 

@@ -1,10 +1,7 @@
 package com.cooksys.assessment1.model;
 
 import java.sql.Timestamp;
-import java.time.LocalDateTime;
-import java.util.List;
 
-import com.cooksys.assessment1.entities.Tweet;
 import com.cooksys.assessment1.entities.User;
 
 import lombok.AllArgsConstructor;
@@ -24,7 +21,7 @@ public class TweetResponseDto {
 
 	private String content;
 
-	private Tweet inReplyTo;
+	private TweetResponseDto inReplyTo;
 
-	private Tweet repostedBy;
+	private TweetResponseDto repostedBy;
 }
