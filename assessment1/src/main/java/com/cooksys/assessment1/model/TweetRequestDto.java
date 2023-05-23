@@ -1,6 +1,8 @@
 package com.cooksys.assessment1.model;
 
+import java.sql.Timestamp;
 import java.time.LocalDateTime;
+import java.util.List;
 
 import com.cooksys.assessment1.entities.User;
 
@@ -13,10 +15,12 @@ public class TweetRequestDto {
 
 	private User author;
 	
-	private LocalDateTime posted;
+	private Timestamp posted;
 	
 	private boolean deleted;
 	
 	private String content;
+	
+	private CredentialsDto credentialsDto;
 	
 }

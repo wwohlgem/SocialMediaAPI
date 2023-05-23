@@ -1,5 +1,6 @@
 package com.cooksys.assessment1.model;
 
+import java.sql.Timestamp;
 import java.time.LocalDateTime;
 
 import lombok.AllArgsConstructor;
@@ -13,7 +14,7 @@ public class UserResponseDto {
 	
 	private Long id;
 	
-	private LocalDateTime joined;
+	private Timestamp joined;
 	
 	
 

@@ -1,5 +1,6 @@
 package com.cooksys.assessment1.model;
 
+import java.sql.Timestamp;
 import java.time.LocalDateTime;
 
 import lombok.Data;
@@ -9,7 +10,7 @@ import lombok.NoArgsConstructor;
 @NoArgsConstructor
 public class UserRequestDto {
 	
-	private LocalDateTime joined = LocalDateTime.now();
+	private Timestamp joined;
 	
 	private boolean deleted;
 
