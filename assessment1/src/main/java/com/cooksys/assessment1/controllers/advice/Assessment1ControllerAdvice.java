@@ -33,8 +33,4 @@ public class Assessment1ControllerAdvice {
         return new ErrorDto(notAuthorizedException.getMessage());
     }
 
-
-
-
-
 }

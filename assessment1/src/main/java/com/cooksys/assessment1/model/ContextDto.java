@@ -11,7 +11,6 @@ import java.util.List;
 @AllArgsConstructor
 @Data
 public class ContextDto {
-
     private Tweet target;
     private List<Tweet> before;
     private List<Tweet> after;

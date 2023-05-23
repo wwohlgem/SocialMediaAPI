@@ -35,7 +35,7 @@ public class Tweet {
 
 	@Column(nullable = false)
 	private boolean deleted = false;
-
+	
 	@Column(nullable = false)
 	private String content;
 

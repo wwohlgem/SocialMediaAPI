@@ -44,7 +44,7 @@ public class User {
 
 	@Embedded
 	Profile profile;
-	
+
 	@ManyToMany
 	@JoinTable(name = "followers_following",
 		joinColumns = @JoinColumn(name = "follower_id"),
@@ -65,7 +65,5 @@ public class User {
 		joinColumns = @JoinColumn(name = "user_id"),
 		inverseJoinColumns = @JoinColumn(name = "tweet_id"))
 	private List<Tweet> userMentions;
-
-
 
 }

@@ -11,7 +11,6 @@ import org.springframework.web.bind.annotation.RestController;
 @RequestMapping("validate")
 @RequiredArgsConstructor
 public class ValidateController {
-
     private final ValidateService validateService;
 
 
