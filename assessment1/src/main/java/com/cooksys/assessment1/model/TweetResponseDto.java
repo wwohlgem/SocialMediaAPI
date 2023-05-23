@@ -27,7 +27,4 @@ public class TweetResponseDto {
 	private Tweet inReplyTo;
 
 	private Tweet repostedBy;
-	
-	private CredentialsDto credentialsDto;
-
 }

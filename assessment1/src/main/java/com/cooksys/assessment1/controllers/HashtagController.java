@@ -6,7 +6,8 @@ import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
 
 @RestController
-@RequestMapping("hashtags")
+// Mapping Should be the path on the API. Changed to /tags
+@RequestMapping("/tags")
 @RequiredArgsConstructor
 public class HashtagController {
     private final HashtagService hashtagService;

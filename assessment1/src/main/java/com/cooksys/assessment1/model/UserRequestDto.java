@@ -10,8 +10,7 @@ import lombok.NoArgsConstructor;
 @NoArgsConstructor
 public class UserRequestDto {
 	
-	private Timestamp joined;
-	
-	private boolean deleted;
+	private CredentialsDto credentials;
+    private ProfileDto profile;
 
 }
