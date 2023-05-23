@@ -6,7 +6,6 @@ import com.cooksys.assessment1.model.HashtagDto;
 import org.mapstruct.Mapper;
 
 import com.cooksys.assessment1.entities.Hashtag;
-import com.cooksys.assessment1.model.HashtagResponseDto;
 
 @Mapper(componentModel="spring")
 public interface HashtagMapper {

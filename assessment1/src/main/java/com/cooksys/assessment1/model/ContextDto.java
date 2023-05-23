@@ -8,11 +8,10 @@ import lombok.NoArgsConstructor;
 import java.util.List;
 
 @NoArgsConstructor
-@AllArgsConstructor
 @Data
 public class ContextDto {
-    private Tweet target;
-    private List<Tweet> before;
-    private List<Tweet> after;
+    private TweetResponseDto target;
+    private List<TweetResponseDto> before;
+    private List<TweetResponseDto> after;
 
 }

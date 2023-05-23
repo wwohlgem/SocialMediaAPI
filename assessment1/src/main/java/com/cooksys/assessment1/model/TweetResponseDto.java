@@ -24,10 +24,7 @@ public class TweetResponseDto {
 
 	private String content;
 
-	private Tweet inReplyTo;
+	private TweetRequestDto inReplyTo;
 
-	private Tweet repostedBy;
-	
-	private CredentialsDto credentialsDto;
-
+	private TweetRequestDto repostedBy;
 }

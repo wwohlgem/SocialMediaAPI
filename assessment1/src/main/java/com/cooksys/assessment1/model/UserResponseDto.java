@@ -12,10 +12,8 @@ import lombok.NoArgsConstructor;
 @AllArgsConstructor
 public class UserResponseDto {
 	
-	private Long id;
-	
-	private Timestamp joined;
-	
-	
+	private String username;
+    private ProfileDto profile;
+    private Timestamp joined;
 
 }
