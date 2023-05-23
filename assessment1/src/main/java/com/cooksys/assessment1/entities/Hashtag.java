@@ -1,15 +1,12 @@
 package com.cooksys.assessment1.entities;
 
 import java.time.LocalDateTime;
+import java.util.List;
+import java.util.Set;
 
-import jakarta.persistence.Column;
-import jakarta.persistence.Entity;
-import jakarta.persistence.GeneratedValue;
-import jakarta.persistence.Id;
+import jakarta.persistence.*;
 import lombok.Data;
 import lombok.NoArgsConstructor;
-
-import java.sql.Timestamp;
 
 
 @Data
@@ -29,5 +26,13 @@ public class Hashtag {
 
 	@Column(nullable = false)
 	private LocalDateTime lastUsed;
+
+	@ManyToMany
+	@JoinTable(
+			name = "tweet_hashtags",
+			joinColumns = @JoinColumn(name = "hashtag_id"),
+			inverseJoinColumns = @JoinColumn(name = "tweet_id"))
+
+	private Set<Tweet> hashtaggedTweets;
 
 }
