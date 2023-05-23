@@ -1,6 +1,7 @@
 package com.cooksys.assessment1.model;
 
 import java.time.LocalDateTime;
+import java.util.List;
 
 import com.cooksys.assessment1.entities.User;
 
@@ -18,5 +19,7 @@ public class TweetRequestDto {
 	private boolean deleted;
 	
 	private String content;
+	
+	private List<CredentialsDto> credentials;
 	
 }

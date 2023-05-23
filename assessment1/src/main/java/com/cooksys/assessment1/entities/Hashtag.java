@@ -1,12 +1,10 @@
 package com.cooksys.assessment1.entities;
 
-import java.time.LocalDateTime;
-import java.util.List;
+import java.sql.Timestamp;
 import java.util.Set;
 
-import jakarta.persistence.*;
-
-import java.util.Set;
+import org.hibernate.annotations.CreationTimestamp;
+import org.hibernate.annotations.UpdateTimestamp;
 
 import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
@@ -30,11 +28,13 @@ public class Hashtag {
 	@Column(nullable = false)
 	private String label;
 
+	@CreationTimestamp
 	@Column(nullable = false)
-	private LocalDateTime firstUsed;
+	private Timestamp firstUsed;
 
+	@UpdateTimestamp
 	@Column(nullable = false)
-	private LocalDateTime lastUsed;
+	private Timestamp lastUsed;
 
 	@ManyToMany
 	@JoinTable(

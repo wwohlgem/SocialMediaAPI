@@ -1,11 +1,10 @@
 package com.cooksys.assessment1.entities;
 
-import java.time.LocalDateTime;
-import java.util.Set;
-
-import jakarta.persistence.*;
+import java.sql.Timestamp;
 import java.util.List;
 import java.util.Set;
+
+import org.hibernate.annotations.CreationTimestamp;
 
 import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
@@ -30,8 +29,9 @@ public class Tweet {
 	@JoinColumn
 	private User author;
 
+	@CreationTimestamp
 	@Column(nullable = false)
-	private LocalDateTime posted;
+	private Timestamp posted;
 
 	@Column(nullable = false)
 	private boolean deleted = false;

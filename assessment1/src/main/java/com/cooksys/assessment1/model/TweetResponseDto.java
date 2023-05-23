@@ -1,6 +1,7 @@
 package com.cooksys.assessment1.model;
 
 import java.time.LocalDateTime;
+import java.util.List;
 
 import com.cooksys.assessment1.entities.Tweet;
 import com.cooksys.assessment1.entities.User;
@@ -25,5 +26,7 @@ public class TweetResponseDto {
 	private Tweet inReplyTo;
 
 	private Tweet repostedBy;
+	
+	private List<CredentialsDto> credentials;
 
 }

@@ -9,7 +9,7 @@ import lombok.NoArgsConstructor;
 @NoArgsConstructor
 public class UserRequestDto {
 	
-	private LocalDateTime joined = LocalDateTime.now();
+	private LocalDateTime joined;
 	
 	private boolean deleted;
 
