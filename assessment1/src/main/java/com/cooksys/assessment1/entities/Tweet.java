@@ -67,5 +67,9 @@ public class Tweet {
 		joinColumns = @JoinColumn(name = "tweet_id"),
 		inverseJoinColumns = @JoinColumn(name ="user_id"))
 	private List<User> mentions;
+	
+	public void addMention(User user) {
+		mentions.add(user);
+	}
 
 }
