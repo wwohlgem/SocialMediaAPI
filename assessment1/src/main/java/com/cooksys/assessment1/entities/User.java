@@ -5,6 +5,8 @@ import java.util.List;
 
 import org.hibernate.annotations.CreationTimestamp;
 
+import jakarta.persistence.AttributeOverride;
+import jakarta.persistence.AttributeOverrides;
 import jakarta.persistence.Column;
 import jakarta.persistence.Embedded;
 import jakarta.persistence.Entity;
@@ -39,9 +41,19 @@ public class User {
 	private List<Tweet> tweets;
 
 	@Embedded
+	@AttributeOverrides({
+        @AttributeOverride(name = "username", column = @Column(name = "username")),
+        @AttributeOverride(name = "password", column = @Column(name = "password")),
+})
 	private Credentials credentials;
 
 	@Embedded
+	@AttributeOverrides({
+        @AttributeOverride(name = "firstName", column = @Column(name = "firstName")),
+        @AttributeOverride(name = "lastName", column = @Column(name = "lastName")),
+        @AttributeOverride(name = "phone", column = @Column(name = "phone")),
+        @AttributeOverride(name = "email", column = @Column(name = "email"))
+})
 	private Profile profile;
 
 	@ManyToMany
@@ -63,5 +75,9 @@ public class User {
 		joinColumns = @JoinColumn(name = "user_id"),
 		inverseJoinColumns = @JoinColumn(name = "tweet_id"))
 	private List<Tweet> userMentions;
+	
+	public boolean isDeleted() {
+		return deleted;
+	}
 
 }

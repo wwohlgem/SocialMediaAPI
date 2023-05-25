@@ -40,12 +40,16 @@ public class TweetServiceImpl implements TweetService {
 		return optionalTweet.get();
 	}
 	
-	private User getUser(CredentialsDto credentialsDto) {
-		Optional<User> optionalUser = userRepository.findByCredentials_UsernameAndDeletedFalse(credentialsDto.getUsername());
-		if(optionalUser.isEmpty()) {
-			throw new NotFoundException("The provided user does not exist");
+	private User getUserByUsername(String username) {
+		Optional<User> optionalUser = userRepository.findByCredentialsUsername(username);
+		if (optionalUser.isEmpty()) {
+			throw new NotFoundException("No user found.");
 		}
-		return optionalUser.get();
+		User user = optionalUser.get();
+		if (user.isDeleted()) {
+			throw new BadRequestException("User has been flagged as deleted.");
+		}
+		return user;
 	}
 	
 	@Override
@@ -118,7 +122,7 @@ public class TweetServiceImpl implements TweetService {
 		
 		Tweet tweetToSave = tweetMapper.dtoToEntity(tweetRequestDto);
 		CredentialsDto credentialsDto = tweetRequestDto.getCredentials();
-		User tweetAuthor = getUser(tweetRequestDto.getCredentials());
+		User tweetAuthor = getUserByUsername(tweetRequestDto.getCredentials().getUsername());
 		
 		if(validateService.checkUsernameExists(credentialsDto.getUsername())) {
 			userRepository.saveAndFlush(tweetAuthor);
