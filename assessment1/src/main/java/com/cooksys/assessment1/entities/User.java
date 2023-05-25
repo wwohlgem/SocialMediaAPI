@@ -70,14 +70,27 @@ public class User {
 		inverseJoinColumns = @JoinColumn(name = "tweet_id"))
 	private List<Tweet> likedTweets;
 	
-	@ManyToMany
-	@JoinTable(name = "user_mentions",
-		joinColumns = @JoinColumn(name = "user_id"),
-		inverseJoinColumns = @JoinColumn(name = "tweet_id"))
+	@ManyToMany(mappedBy = "mentions")
 	private List<Tweet> userMentions;
 	
 	public boolean isDeleted() {
 		return deleted;
+	}
+	
+	public void addFollower(User follower) {
+		followers.add(follower);
+	}
+	
+	public void addFollowing(User follow) {
+		following.add(follow);
+	}
+	
+	public void removeFollower(User follower) {
+		followers.remove(follower);
+	}
+	
+	public void removeFollowing(User follow) {
+		followers.remove(follow);
 	}
 
 }

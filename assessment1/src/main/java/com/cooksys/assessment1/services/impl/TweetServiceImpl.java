@@ -122,7 +122,7 @@ public class TweetServiceImpl implements TweetService {
 		
 		Tweet tweetToSave = tweetMapper.dtoToEntity(tweetRequestDto);
 		CredentialsDto credentialsDto = tweetRequestDto.getCredentials();
-		User tweetAuthor = getUserByUsername(tweetRequestDto.getCredentials().getUsername());
+		User tweetAuthor = getUserByUsername(credentialsDto.getUsername());
 		
 		if(validateService.checkUsernameExists(credentialsDto.getUsername())) {
 			userRepository.saveAndFlush(tweetAuthor);
@@ -132,6 +132,25 @@ public class TweetServiceImpl implements TweetService {
 		} else {
 			throw new BadRequestException("The specified user does not exist");
 		}
+	}
+	
+	@Override
+	public void addLikeToTweet(Long id, CredentialsDto credentialsDto) {
+		Optional<Tweet> optionalTweet = tweetRepository.findById(id);
+		if(optionalTweet.isEmpty()) {
+			throw new NotFoundException("The specified tweet does not exist.");
+		}
+		Tweet tweetToLike = optionalTweet.get();
+		if(tweetToLike.isDeleted()) {
+			throw new BadRequestException("The specified tweet appears to have been deleted");
+		}
+		User currentUser = getUserByUsername(credentialsDto.getUsername());
+		if(tweetToLike.getLikes().contains(currentUser)) {
+			throw new BadRequestException("You have already like this tweet");
+		}
+		tweetToLike.getLikes().add(currentUser);
+		tweetRepository.saveAndFlush(tweetToLike);
+		userRepository.saveAndFlush(currentUser);
 	}
 
 }

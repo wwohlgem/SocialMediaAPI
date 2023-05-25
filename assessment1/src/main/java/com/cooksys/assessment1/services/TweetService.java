@@ -16,4 +16,6 @@ public interface TweetService {
 
 	TweetResponseDto createTweet(TweetRequestDto tweetRequestDto);
 
+	void addLikeToTweet(Long id, CredentialsDto credentialsDto);
+
 }
