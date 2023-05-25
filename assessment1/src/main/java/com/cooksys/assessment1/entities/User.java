@@ -57,11 +57,9 @@ public class User {
 		joinColumns = @JoinColumn(name = "user_id"),
 		inverseJoinColumns = @JoinColumn(name = "tweet_id"))
 	private List<Tweet> likedTweets;
-	
-	@ManyToMany
-	@JoinTable(name = "user_mentions",
-		joinColumns = @JoinColumn(name = "user_id"),
-		inverseJoinColumns = @JoinColumn(name = "tweet_id"))
+
+	@ManyToMany(mappedBy = "mentions")
 	private List<Tweet> userMentions;
+
 
 }

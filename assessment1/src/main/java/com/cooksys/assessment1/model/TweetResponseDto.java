@@ -7,6 +7,7 @@ import java.util.List;
 import com.cooksys.assessment1.entities.Tweet;
 import com.cooksys.assessment1.entities.User;
 
+import com.fasterxml.jackson.annotation.JsonManagedReference;
 import lombok.AllArgsConstructor;
 import lombok.Data;
 import lombok.NoArgsConstructor;
@@ -18,13 +19,12 @@ public class TweetResponseDto {
 
 	private Long id;
 
-	private User author;
+	private UserResponseDto author;
 
 	private Timestamp posted;
 
 	private String content;
 
-	private TweetRequestDto inReplyTo;
-
-	private TweetRequestDto repostedBy;
+	private TweetResponseDto inReplyTo;
+	private TweetResponseDto repostOf;
 }

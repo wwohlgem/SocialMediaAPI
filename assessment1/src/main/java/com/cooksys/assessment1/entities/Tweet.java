@@ -63,7 +63,10 @@ public class Tweet {
 	@ManyToMany(mappedBy = "likedTweets")
 	private List<User> likes;
 
-	@ManyToMany(mappedBy = "userMentions")
+	@ManyToMany
+	@JoinTable(name = "user_mentions",
+			joinColumns = @JoinColumn(name = "tweet_id"),
+			inverseJoinColumns = @JoinColumn(name ="user_id"))
 	private List<User> mentions;
 
 }
