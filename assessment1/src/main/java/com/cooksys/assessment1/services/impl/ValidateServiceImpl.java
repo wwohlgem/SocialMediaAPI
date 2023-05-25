@@ -1,23 +1,25 @@
 package com.cooksys.assessment1.services.impl;
 
-import com.cooksys.assessment1.entities.User;
-import com.cooksys.assessment1.mappers.UserMapper;
-import com.cooksys.assessment1.repositories.UserRepository;
-import com.cooksys.assessment1.services.UserService;
-import com.cooksys.assessment1.services.ValidateService;
-import lombok.RequiredArgsConstructor;
+import java.util.Optional;
+
 import org.springframework.stereotype.Service;
 
-import java.util.List;
-import java.util.Optional;
+import com.cooksys.assessment1.entities.User;
+import com.cooksys.assessment1.repositories.HashtagRepository;
+import com.cooksys.assessment1.repositories.UserRepository;
+import com.cooksys.assessment1.services.ValidateService;
+
+import lombok.RequiredArgsConstructor;
 
 @Service
 @RequiredArgsConstructor
 public class ValidateServiceImpl implements ValidateService {
 
     private final UserRepository userRepository;
-    private final UserMapper userMapper;
-
+//    private final UserMapper userMapper;
+    
+    private final HashtagRepository hashtagRepository;
+//    private final HashtagMapper hashtagMapper;
 
     @Override
     public boolean checkUsernameExists(String username) {
@@ -26,7 +28,13 @@ public class ValidateServiceImpl implements ValidateService {
         //check if any of the usernames .equals(username)
         //if so, return true. False otherwise
 
-        Optional<User> notDeletedUser = userRepository.findByCredentials_UsernameAndDeletedFalse(username);
+    	Optional<User> notDeletedUser = userRepository.findByCredentials_UsernameAndDeletedFalse(username);
         return notDeletedUser.isPresent(); //if it's not empty, we found one, so true
     }
+    
+    @Override
+    public boolean checkTagExists(String label) {
+    	return hashtagRepository.findHashtagByLabel(label).isPresent();
+    }
+	
 }

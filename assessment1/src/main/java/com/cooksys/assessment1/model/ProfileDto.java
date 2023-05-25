@@ -2,7 +2,6 @@ package com.cooksys.assessment1.model;
 
 import lombok.Data;
 import lombok.NoArgsConstructor;
-import org.springframework.lang.NonNull;
 
 @NoArgsConstructor
 @Data

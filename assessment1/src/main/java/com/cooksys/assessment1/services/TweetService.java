@@ -21,4 +21,15 @@ public interface TweetService {
     List<UserResponseDto> getLikers(Long id);
 
     TweetResponseDto postReply(Long id, TweetRequestDto tweetRequestDto);
+    
+    List<TweetResponseDto> getAllTweets();
+
+	TweetResponseDto getTweetById(Long id);
+
+	TweetResponseDto deleteTweetById(Long id, CredentialsDto credentialsDto);
+
+	TweetResponseDto createTweet(TweetRequestDto tweetRequestDto);
+
+	void addLikeToTweet(Long id, CredentialsDto credentialsDto);
+
 }

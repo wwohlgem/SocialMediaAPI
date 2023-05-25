@@ -2,7 +2,6 @@ package com.cooksys.assessment1.entities;
 
 import java.sql.Timestamp;
 import java.util.List;
-import java.util.Set;
 
 import org.hibernate.annotations.CreationTimestamp;
 
@@ -65,8 +64,12 @@ public class Tweet {
 
 	@ManyToMany
 	@JoinTable(name = "user_mentions",
-			joinColumns = @JoinColumn(name = "tweet_id"),
-			inverseJoinColumns = @JoinColumn(name ="user_id"))
+		joinColumns = @JoinColumn(name = "tweet_id"),
+		inverseJoinColumns = @JoinColumn(name ="user_id"))
 	private List<User> mentions;
+	
+	public void addMention(User user) {
+		mentions.add(user);
+	}
 
 }

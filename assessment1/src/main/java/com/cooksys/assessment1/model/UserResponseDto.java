@@ -1,7 +1,6 @@
 package com.cooksys.assessment1.model;
 
 import java.sql.Timestamp;
-import java.time.LocalDateTime;
 
 import lombok.AllArgsConstructor;
 import lombok.Data;
