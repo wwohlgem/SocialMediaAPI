@@ -3,13 +3,8 @@ package com.cooksys.assessment1.services.impl;
 import java.sql.Timestamp;
 import java.time.LocalDateTime;
 import java.util.ArrayList;
-import java.util.Comparator;
-import java.util.HashSet;
 import java.util.List;
 import java.util.Optional;
-import java.util.Set;
-import java.util.SortedSet;
-import java.util.TreeSet;
 
 import org.springframework.stereotype.Service;
 
@@ -83,7 +78,7 @@ public class TweetServiceImpl implements TweetService {
 	}
 
 	private User getUserByUsername(String username) {
-		Optional<User> optionalUser = userRepository.findByCredentials_UsernameAndDeletedFalse(username);
+		Optional<User> optionalUser = userRepository.findByCredentialsUsernameAndDeletedFalse(username);
 		if (optionalUser.isEmpty()) {
 			throw new NotFoundException("No user found.");
 		}
@@ -175,12 +170,12 @@ public class TweetServiceImpl implements TweetService {
 		for (String word : wordsInContent) {
 			if (word.startsWith("#")) {
 
-				Optional<Hashtag> optionalHashtag = hashtagRepository.findHashtagByLabel(word);
+				Optional<Hashtag> optionalHashtag = hashtagRepository.findHashtagByLabel(word.substring(1));
 				Hashtag hashtag = new Hashtag();
-				hashtag.setLabel(word);
+				hashtag.setLabel(word.substring(1));
 				hashtag.setFirstUsed(tweetToSave.getPosted());
 				if (!optionalHashtag.isPresent()) {
-					hashtag.setLabel(word);
+					hashtag.setLabel(word.substring(1));
 					allHashtags.add(hashtag);
 
 				} else {
@@ -321,49 +316,48 @@ public class TweetServiceImpl implements TweetService {
 		return tweetMapper.entitiesToDtos(replies);
 	}
 
-	private Set<Tweet> setBefore(Tweet tweet, Set<Tweet> replies) {
-		if (tweet != null) {
-			if (!replies.contains(tweet)) {
-				if (!tweet.isDeleted()) {
-					replies.add(tweet);
-				}
-				setBefore(tweet.getInReplyTo(), replies);
-			}
-		}
-		return replies;
-	}
-
-	private Set<Tweet> setAfter(Tweet tweet, Set<Tweet> replies) {
-		Set<Tweet> tweetSet = tweetRepository.findByInReplyToOrderByPostedDesc(tweet);
-		for (Tweet twt : tweetSet) {
-			if (twt != null && !replies.contains(tweet)) {
-				if (!twt.isDeleted()) {
-					replies.add(twt);
-				}
-				setAfter(twt, replies);
-			}
-		}
-		return replies;
-	}
-
 	@Override
 	public ContextDto getContext(Long id) {
-		Tweet queriedTweet = getTweet(id);
-		TweetResponseDto target = tweetMapper.entityToDto(queriedTweet);
 
-		SortedSet<Tweet> beforeSet = new TreeSet<>(Comparator.comparing(Tweet::getPosted));
-		setBefore(queriedTweet.getInReplyTo(), beforeSet);
-		List<TweetResponseDto> beforeDtos = tweetMapper.setEntitiesToDtos(beforeSet);
+	   ContextDto contextDto = new ContextDto();
+	   Tweet contextTweet = validateAndGetTweetById(id);
 
-		HashSet<Tweet> afterSet = new HashSet<>();
-		setAfter(queriedTweet, afterSet);
-		SortedSet<Tweet> afterSetSorted = new TreeSet<>(Comparator.comparing(Tweet::getPosted));
+	   if (contextTweet.isDeleted() || contextTweet.equals(null)) {
+	      throw new NotFoundException("Not Found");
+	   }
 
-		afterSetSorted.addAll(afterSet);
-		List<TweetResponseDto> afterDtos = tweetMapper.setEntitiesToDtos(afterSetSorted);
+	   Tweet beforeTweet = contextTweet.getInReplyTo();
+	   List<Tweet> before = new ArrayList<Tweet>();
+	   List<Tweet> after = contextTweet.getReplies();
+	   List<Tweet> afterTweets = new ArrayList<Tweet>();
 
-		ContextDto context = new ContextDto(target, beforeDtos, afterDtos);
-		return context;
+	   afterTweets.addAll(after);
+
+	   while (beforeTweet != null) {
+	      before.add(beforeTweet);
+	      beforeTweet = beforeTweet.getInReplyTo();
+	   }
+	   for (Tweet tweet : after) {
+	      if (tweet.getReplies() != null) {
+	         afterTweets.addAll(tweet.getReplies());
+	      }
+	   }
+	   for (Tweet tweet : before) {
+	      if (tweet.isDeleted()) {
+	         before.remove(tweet);
+	      }
+	   }
+	   for (Tweet tweet : after) {
+	      if (tweet.isDeleted()) {
+	         after.remove(tweet);
+	      }
+	   }
+
+	   contextDto.setBefore(tweetMapper.entitiesToDtos(before));
+	   contextDto.setTarget(tweetMapper.entityToDto(contextTweet));
+	   contextDto.setAfter(tweetMapper.entitiesToDtos(afterTweets));
+
+	   return contextDto;
 	}
 
 	@Override
