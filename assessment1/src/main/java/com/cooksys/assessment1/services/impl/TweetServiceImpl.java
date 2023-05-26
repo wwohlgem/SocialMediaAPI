@@ -1,5 +1,7 @@
 package com.cooksys.assessment1.services.impl;
 
+import java.sql.Timestamp;
+import java.time.LocalDateTime;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Optional;
@@ -27,6 +29,7 @@ import com.cooksys.assessment1.repositories.UserRepository;
 import com.cooksys.assessment1.services.TweetService;
 import com.cooksys.assessment1.services.ValidateService;
 
+import jakarta.transaction.Transactional;
 import lombok.RequiredArgsConstructor;
 
 @Service
@@ -121,45 +124,41 @@ public class TweetServiceImpl implements TweetService {
 	}
 
 	@Override
+	@Transactional
 	public TweetResponseDto createTweet(TweetRequestDto tweetRequestDto) {
-
-		/*
-		 * Creates a new simple tweet, with the author set to the user identified by the
-		 * credentials in the request body. If the given credentials do not match an
-		 * active user in the database, an error should be sent in lieu of a response.
-		 * 
-		 * The response should contain the newly-created tweet. Because this always
-		 * creates a simple tweet, it must have a content property and may not have
-		 * inReplyTo or repostOf properties. IMPORTANT: when a tweet with content is
-		 * created, the server must process the tweet's content for @{username} mentions
-		 * and #{hashtag} tags. There is no way to create hashtags or create mentions
-		 * from the API, so this must be handled automatically!
-		 * 
-		 * 
-		 * STILL NEED TO parse the strings for mentions and hashtags
-		 */
+		if(tweetRequestDto.getContent() == null || tweetRequestDto.getCredentials() == null || tweetRequestDto.getCredentials().getPassword() == null) {
+			throw new BadRequestException("The content and credentials are required fields");
+		}
 		
-
 		Tweet tweetToSave = tweetMapper.dtoToEntity(tweetRequestDto);
 		CredentialsDto credentialsDto = tweetRequestDto.getCredentials();
-		User tweetAuthor = getUserByUsername(credentialsDto.getUsername());
+		Optional<User> optionalUser = userRepository.findByCredentials_UsernameAndDeletedFalse(credentialsDto.getUsername());
+		if(optionalUser.isEmpty() || optionalUser.get().isDeleted()) {
+			throw new NotFoundException("No user found by that username");
+		} 
+		
+		User tweetAuthor = optionalUser.get();
+		
+		
 		List<User> mentions = tweetToSave.getMentions();
 
 		String[] wordsInContent = tweetRequestDto.getContent().split("\\s+");
 
-		List<Hashtag> allHashtags = hashtagRepository.findAll();
 		for (String word : wordsInContent) {
 			if (word.startsWith("#")) {
 				
+				Optional<Hashtag> optionalHashtag = hashtagRepository.findHashtagByLabel(word);
 				Hashtag hashtag = new Hashtag();
 				hashtag.setLabel(word);
 				hashtag.setFirstUsed(tweetToSave.getPosted());
-				if(!allHashtags.contains(hashtag)) {
-					allHashtags.add(hashtag);
-					hashtagRepository.saveAndFlush(hashtag);					
+				if(!optionalHashtag.isPresent()) {
+					hashtag.setLabel(word);
+				} else {
+					optionalHashtag.get().setLastUsed(Timestamp.valueOf(LocalDateTime.now()));
 				}
+				tweetToSave.getHashtags().add(hashtag);
+				hashtagRepository.saveAndFlush(hashtag);
 			}
-			
 			if(word.startsWith("@")) {
 				if(mentions != null) {
 					User mentionedUser = getUserByUsername(word.substring(1));
@@ -172,11 +171,9 @@ public class TweetServiceImpl implements TweetService {
 				tweetToSave.setMentions(mentions);
 			}
 		}
-		
+		tweetToSave.setContent(tweetRequestDto.getContent());
 		userRepository.saveAndFlush(tweetAuthor);
-		tweetToSave.setAuthor(tweetAuthor);
-		tweetRepository.saveAndFlush(tweetToSave);
-		return tweetMapper.entityToDto(tweetToSave);
+		return tweetMapper.entityToDto(tweetRepository.saveAndFlush(tweetToSave));
 		
 	}
 

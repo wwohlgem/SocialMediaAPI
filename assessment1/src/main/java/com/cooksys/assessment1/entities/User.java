@@ -29,6 +29,9 @@ public class User {
 	@Id
 	@GeneratedValue
 	private Long id;
+	
+	@Column(insertable=false, updatable=false)
+	private String username;
 
 	@CreationTimestamp
 	@Column(nullable = false)
