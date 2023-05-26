@@ -22,7 +22,6 @@ import com.cooksys.assessment1.model.ProfileDto;
 import com.cooksys.assessment1.model.TweetResponseDto;
 import com.cooksys.assessment1.model.UserRequestDto;
 import com.cooksys.assessment1.model.UserResponseDto;
-import com.cooksys.assessment1.repositories.TweetRepository;
 import com.cooksys.assessment1.repositories.UserRepository;
 import com.cooksys.assessment1.services.UserService;
 
@@ -34,7 +33,6 @@ public class UserServiceImpl implements UserService {
 	private final UserRepository userRepository;
 	private final UserMapper userMapper;
 
-	private final TweetRepository tweetRepository;
 	private final TweetMapper tweetMapper;
 
 	private final CredentialsMapper credentialsMapper;
@@ -61,7 +59,7 @@ public class UserServiceImpl implements UserService {
 	
 	private User getUserByUsername(String username) {
 		Optional<User> optionalUser = userRepository.findByCredentials_UsernameAndDeletedFalse(username);
-		if (optionalUser.isEmpty() || optionalUser.get().isDeleted()) {
+		if (optionalUser.isEmpty()) {
 			throw new NotFoundException("The specified user does not exist");
 		}
 		User user = optionalUser.get();
@@ -91,9 +89,18 @@ public class UserServiceImpl implements UserService {
 	@Override
 	public List<TweetResponseDto> getUserTweets(String username) {
 
-		List<Tweet> tweets = tweetRepository.findAllByAuthor_Credentials_UsernameAndDeletedFalse(username);
+		Optional<User> queriedUser = userRepository.findByCredentials_UsernameAndDeletedFalse(username);
+		if(queriedUser.isEmpty() || queriedUser.get().isDeleted()) {
+			throw new NotFoundException("User could not be found");
+		}
+		List<Tweet> allTweets = queriedUser.get().getTweets();
+		for(Tweet tweet : allTweets) {
+			if(tweet.isDeleted()) {
+				allTweets.remove(tweet);
+			}
+		}
 	
-		return tweetMapper.entitiesToDtos(tweets);
+		return tweetMapper.entitiesToDtos(allTweets);
 
 	}
 

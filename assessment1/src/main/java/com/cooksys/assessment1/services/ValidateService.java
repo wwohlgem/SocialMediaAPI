@@ -5,5 +5,7 @@ public interface ValidateService {
 	boolean checkUsernameExists(String username);
 
 	boolean checkTagExists(String label);
+
+	boolean checkUsernameAvailable(String username);
 	
 }

@@ -16,10 +16,8 @@ import lombok.RequiredArgsConstructor;
 public class ValidateServiceImpl implements ValidateService {
 
     private final UserRepository userRepository;
-//    private final UserMapper userMapper;
     
     private final HashtagRepository hashtagRepository;
-//    private final HashtagMapper hashtagMapper;
 
     @Override
     public boolean checkUsernameExists(String username) {
@@ -36,5 +34,11 @@ public class ValidateServiceImpl implements ValidateService {
     public boolean checkTagExists(String label) {
     	return hashtagRepository.findHashtagByLabel(label).isPresent();
     }
-	
+    
+    @Override
+    public boolean checkUsernameAvailable(String username) {
+    	Optional<User> optionalUser = userRepository.findByCredentials_UsernameAndDeletedFalse(username);
+    	return optionalUser.isEmpty();
+    }
+	//hello
 }
