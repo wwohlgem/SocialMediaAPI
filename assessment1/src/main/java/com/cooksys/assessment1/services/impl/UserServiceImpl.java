@@ -5,9 +5,12 @@ import java.time.LocalDateTime;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Optional;
+import java.util.Set;
+import java.util.stream.Collectors;
 
 import org.springframework.stereotype.Service;
 
+import com.cooksys.assessment1.entities.Profile;
 import com.cooksys.assessment1.entities.Tweet;
 import com.cooksys.assessment1.entities.User;
 import com.cooksys.assessment1.exceptions.BadRequestException;
@@ -39,33 +42,29 @@ public class UserServiceImpl implements UserService {
 
 	private final CredentialsMapper credentialsMapper;
 
-//    private final ValidateServiceImpl validateServiceImpl;
-
 	private final ProfileMapper profileMapper;
 
-	private void validateByCredentials(CredentialsDto credentialsDto) {
-
-		// get the optional user. If it is empty, throw Not Found Exception
-		if (userRepository.findByCredentialsAndDeletedFalse(credentialsMapper.dtoToEntity(credentialsDto)).isEmpty()) {
+	private User getByCredentials(CredentialsDto credentialsDto) {
+		if (credentialsDto == null || credentialsDto.getUsername() == null || credentialsDto.getPassword() == null) {
+			throw new NotAuthorizedException("Credentials are required");
+		}
+		Optional<User> optionalUser = userRepository
+				.findByCredentialsUsernameAndDeletedFalse(credentialsDto.getUsername());
+		if (optionalUser.isEmpty()) {
 			throw new NotFoundException("User not found");
 		}
-	}
-
-	private void validateByUsername(String username) {
-
-		// get the optional user. If it is empty, throw Not Found Exception
-		if (userRepository.findByCredentials_UsernameAndDeletedFalse(username).isEmpty()) {
-			throw new NotFoundException("User not found");
+		if (!optionalUser.get().getCredentials().getPassword().equals(credentialsDto.getPassword())) {
+			throw new NotAuthorizedException("Password is invalid");
 		}
+		return optionalUser.get();
 	}
-	
+
 	private User getUserByUsername(String username) {
-		Optional<User> optionalUser = userRepository.findByCredentials_UsernameAndDeletedFalse(username);
+		Optional<User> optionalUser = userRepository.findByCredentialsUsernameAndDeletedFalse(username);
 		if (optionalUser.isEmpty() || optionalUser.get().isDeleted()) {
 			throw new NotFoundException("The specified user does not exist");
 		}
-		User user = optionalUser.get();
-		return user;
+		return optionalUser.get();
 	}
 
 	private List<User> getAllFollowingNotDeleted(User user) {
@@ -90,78 +89,72 @@ public class UserServiceImpl implements UserService {
 
 	@Override
 	public List<TweetResponseDto> getUserTweets(String username) {
-
-		List<Tweet> tweets = tweetRepository.findAllByAuthor_Credentials_UsernameAndDeletedFalse(username);
-	
-		return tweetMapper.entitiesToDtos(tweets);
+		User user = getUserByUsername(username);
+		return tweetMapper.entitiesToDtos(user.getTweets());
 
 	}
 
 	@Override
 	public UserResponseDto deleteUser(CredentialsDto credentialsDto, String username) {
-		// if the user exists, mark as deleted and return the useResponseDto
-		// if the user doesn't exist, throw new NotFoundException
-		// maybe make a helper method for validation
-
-		validateByCredentials(credentialsDto);
-
-		User userToDelete = userRepository
-				.findByCredentialsAndDeletedFalse(credentialsMapper.dtoToEntity(credentialsDto)).get();
-
-		UserResponseDto userBeforeDeleting = null;
+		User userToDelete = getByCredentials(credentialsDto);
 
 		if (userToDelete.getCredentials().getUsername().equals(username)) {
-
-			// only want the user to be able to delete their own profile. So their username
-			// must match the one they passed in the credentials
-			userBeforeDeleting = userMapper.entityToDto(userToDelete);
+			for (Tweet tweet : userToDelete.getTweets()) {
+				tweet.setDeleted(true);
+				tweetRepository.saveAndFlush(tweet);
+			}
 			userToDelete.setDeleted(true);
 			userRepository.saveAndFlush(userToDelete);
-
-		} else
-			throw new NotAuthorizedException("You cannot delete someone else's profile");
-		return userBeforeDeleting;
+		} else {
+			throw new NotAuthorizedException("The provided credentials do not match the user to be deleted");
+		}
+		return userMapper.entityToDto(userToDelete);
 	}
 
 	@Override
 	public UserResponseDto updateProfile(String username, UserRequestDto userRequestDto) {
-		if(userRequestDto.getCredentials() == null || userRequestDto.getProfile() == null || 
-				userRequestDto.getCredentials().getUsername() == null ||
-				userRequestDto.getCredentials().getPassword() == null) {
-			throw new BadRequestException("Must provide user credentials and at least an email for the profile");
+		if (userRequestDto == null || userRequestDto.getCredentials() == null || userRequestDto.getProfile() == null) {
+			throw new BadRequestException("Must provide user credentials and profile to update");
 		}
-			
-		User userToUpdate = getUserByUsername(username);
-		ProfileDto profileToSave = userRequestDto.getProfile();
-		if(userRequestDto.getCredentials().getUsername() == userToUpdate.getCredentials().getUsername() &&
-				userRequestDto.getCredentials().getPassword() == userToUpdate.getCredentials().getPassword()) {
-			userToUpdate.setProfile(profileMapper.dtoToEntity(profileToSave));
+		User userToUpdate = getByCredentials(userRequestDto.getCredentials());
+
+		Profile profileToUpdate = profileMapper.dtoToEntity(userRequestDto.getProfile());
+		if (profileToUpdate.getEmail() != null) {
+			userToUpdate.getProfile().setEmail(profileToUpdate.getEmail());
 		}
+		if (profileToUpdate.getFirstName() != null) {
+			userToUpdate.getProfile().setFirstName(profileToUpdate.getFirstName());
+		}
+		if (profileToUpdate.getLastName() != null) {
+			userToUpdate.getProfile().setLastName(profileToUpdate.getLastName());
+		}
+		if (profileToUpdate.getPhone() != null) {
+			userToUpdate.getProfile().setPhone(profileToUpdate.getPhone());
+		}
+		userRepository.saveAndFlush(userToUpdate);
+
 		return userMapper.entityToDto(userToUpdate);
 	}
 
 	@Override
 	public UserResponseDto getUser(String username) {
-
-		validateByUsername(username);
-
-		User user = userRepository.findByCredentials_UsernameAndDeletedFalse(username).get();
-
-		return userMapper.entityToDto(user);
+		return userMapper.entityToDto(getUserByUsername(username));
 	}
 
 	@Override
 	public List<UserResponseDto> getUserFollowers(String username) {
 		User queriedUser = getUserByUsername(username);
-		List<User> userFollowers = getAllFollowersNotDeleted(queriedUser);
-		return userMapper.entityToDtos(userFollowers);
+		Set<User> userFollowers = queriedUser.getFollowers();
+		return userMapper
+				.entityToDtos(userFollowers.stream().filter(user -> !user.isDeleted()).collect(Collectors.toList()));
 	}
 
 	@Override
 	public List<UserResponseDto> getUserFollowing(String username) {
 		User queriedUser = getUserByUsername(username);
-		List<User> userFollowing = getAllFollowingNotDeleted(queriedUser);
-		return userMapper.entityToDtos(userFollowing);
+		Set<User> userFollowers = queriedUser.getFollowing();
+		return userMapper.entityToDtos(userFollowers.stream().filter(
+				user -> !user.isDeleted()).collect(Collectors.toList()));
 	}
 
 	@Override
@@ -203,28 +196,36 @@ public class UserServiceImpl implements UserService {
 			throw new BadRequestException("You must include a username, password, and at least an email");
 		}
 		User userToSave = userMapper.dtoToEntity(userRequestDto);
-		CredentialsDto credentials = userRequestDto.getCredentials();
-		ProfileDto userProfile = userRequestDto.getProfile();
 
-		if (credentials.getPassword() == null || credentials.getUsername() == null || userProfile.getEmail() == null) {
+		if (userToSave.getCredentials().getPassword() == null || userToSave.getCredentials().getUsername() == null
+				|| userToSave.getProfile().getEmail() == null) {
 			throw new BadRequestException("Credentials must include username and password and at least an email");
 		}
-		String username = credentials.getUsername();
-		Optional<User> optionalUser = userRepository.findByCredentials_UsernameAndDeletedFalse(username);
+		Optional<User> optionalUser = userRepository
+				.findByCredentialsUsername(userToSave.getCredentials().getUsername());
 		if (optionalUser.isPresent()) {
-			throw new BadRequestException("That username already exists, Please choose another username.");
+			User existingUser = optionalUser.get();
+			if (!existingUser.isDeleted()) {
+				throw new BadRequestException("That username already exists, Please choose another username.");
+			}
+			existingUser.setDeleted(false);
+			existingUser.setProfile(userToSave.getProfile());
+			for (Tweet tweet : existingUser.getTweets()) {
+				tweet.setDeleted(false);
+			}
+			userRepository.saveAndFlush(existingUser);
+			tweetRepository.saveAllAndFlush(existingUser.getTweets());
+			return userMapper.entityToDto(existingUser);
+		} else {
+			userToSave.setJoined(Timestamp.valueOf(LocalDateTime.now()));
+			userRepository.saveAndFlush(userToSave);
+			return userMapper.entityToDto(userToSave);
 		}
-		userToSave.setCredentials(credentialsMapper.dtoToEntity(credentials));
-		userToSave.setProfile(profileMapper.dtoToEntity(userProfile));
-
-		userToSave.setJoined(Timestamp.valueOf(LocalDateTime.now()));
-		userRepository.saveAndFlush(userToSave);
-		return userMapper.entityToDto(userToSave);
 	}
 
 	@Override
 	public void addFollow(String username, CredentialsDto credentialsDto) {
-		if(credentialsDto.getPassword() == null) {
+		if (credentialsDto.getPassword() == null) {
 			throw new BadRequestException("The password is required");
 		}
 		User userToFollow = getUserByUsername(username);
@@ -232,10 +233,10 @@ public class UserServiceImpl implements UserService {
 		if (userToFollow.getFollowers().contains(lemming)) {
 			throw new BadRequestException("You are already following this user");
 		}
-		userToFollow.addFollower(lemming);
-		lemming.addFollowing(userToFollow);
-		userRepository.saveAndFlush(lemming);
+		userToFollow.getFollowers().add(lemming);
+		lemming.getFollowing().add(userToFollow);
 		userRepository.saveAndFlush(userToFollow);
+		userRepository.saveAndFlush(lemming);
 	}
 
 	@Override
@@ -248,10 +249,10 @@ public class UserServiceImpl implements UserService {
 		if (!userFollowing.getFollowers().contains(noLongerALemming)) {
 			throw new BadRequestException("You are not currently following this user");
 		}
-		userFollowing.removeFollower(noLongerALemming);
-		noLongerALemming.removeFollowing(userFollowing);
-		userRepository.saveAndFlush(noLongerALemming);
+		userFollowing.getFollowers().remove(noLongerALemming);
+		noLongerALemming.getFollowing().remove(userFollowing);
 		userRepository.saveAndFlush(userFollowing);
+		userRepository.saveAndFlush(noLongerALemming);
 	}
 
 }

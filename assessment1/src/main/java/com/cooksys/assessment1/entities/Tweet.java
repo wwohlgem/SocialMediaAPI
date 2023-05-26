@@ -1,7 +1,10 @@
 package com.cooksys.assessment1.entities;
 
 import java.sql.Timestamp;
+import java.util.ArrayList;
+import java.util.HashSet;
 import java.util.List;
+import java.util.Set;
 
 import org.hibernate.annotations.CreationTimestamp;
 
@@ -44,32 +47,40 @@ public class Tweet {
 	private Tweet inReplyTo;
 
 	@OneToMany(mappedBy = "inReplyTo")
-	private List<Tweet> replies;
+	private List<Tweet> replies = new ArrayList<>();;
 
 	@ManyToOne
 	private Tweet repostOf;
 
 	@OneToMany(mappedBy = "repostOf")
-	private List<Tweet> reposts;
+	private List<Tweet> reposts = new ArrayList<>();;
 
 	@ManyToMany(cascade = CascadeType.MERGE)
-	@JoinTable(
-			name = "tweet_hashtags", 
-			joinColumns = @JoinColumn(name = "hashtag_id"), 
-			inverseJoinColumns = @JoinColumn(name = "tweet_id"))
-	private List<Hashtag> hashtags;
+	@JoinTable(name = "tweet_hashtags", joinColumns = @JoinColumn(name = "hashtag_id"), inverseJoinColumns = @JoinColumn(name = "tweet_id"))
+	private List<Hashtag> hashtags = new ArrayList<>();;
 
 	@ManyToMany(mappedBy = "likedTweets")
-	private List<User> likes;
+	private Set<User> likes = new HashSet<>();
 
 	@ManyToMany
-	@JoinTable(name = "user_mentions",
-		joinColumns = @JoinColumn(name = "tweet_id"),
-		inverseJoinColumns = @JoinColumn(name ="user_id"))
-	private List<User> mentions;
-	
+	@JoinTable(name = "user_mentions", joinColumns = @JoinColumn(name = "tweet_id"), inverseJoinColumns = @JoinColumn(name = "user_id"))
+	private List<User> mentions = new ArrayList<>();
+
 	public void addMention(User user) {
 		mentions.add(user);
+	}
+
+	@Override
+	public int hashCode() {
+		return id.intValue();
+	}
+
+	@Override
+	public boolean equals(Object obj) {
+		if (obj instanceof Tweet) {
+			return ((Tweet) obj).getId().equals(this.getId());
+		}
+		return false;
 	}
 
 }

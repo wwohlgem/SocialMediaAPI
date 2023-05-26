@@ -16,25 +16,25 @@ import lombok.RequiredArgsConstructor;
 public class ValidateServiceImpl implements ValidateService {
 
     private final UserRepository userRepository;
-//    private final UserMapper userMapper;
-    
+    // private final UserMapper userMapper;
+
     private final HashtagRepository hashtagRepository;
-//    private final HashtagMapper hashtagMapper;
+    // private final HashtagMapper hashtagMapper;
 
     @Override
     public boolean checkUsernameExists(String username) {
 
-        //want to look through users not deleted
-        //check if any of the usernames .equals(username)
-        //if so, return true. False otherwise
+        // want to look through users not deleted
+        // check if any of the usernames .equals(username)
+        // if so, return true. False otherwise
 
-    	Optional<User> notDeletedUser = userRepository.findByCredentials_UsernameAndDeletedFalse(username);
-        return notDeletedUser.isPresent(); //if it's not empty, we found one, so true
+        Optional<User> notDeletedUser = userRepository.findByCredentialsUsernameAndDeletedFalse(username);
+        return notDeletedUser.isPresent(); // if it's not empty, we found one, so true
     }
-    
+
     @Override
     public boolean checkTagExists(String label) {
-    	return hashtagRepository.findHashtagByLabel(label).isPresent();
+        return hashtagRepository.findHashtagByLabel(label).isPresent();
     }
-	
+
 }

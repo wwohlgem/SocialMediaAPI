@@ -1,7 +1,10 @@
 package com.cooksys.assessment1.entities;
 
 import java.sql.Timestamp;
+import java.util.ArrayList;
+import java.util.HashSet;
 import java.util.List;
+import java.util.Set;
 
 import org.hibernate.annotations.CreationTimestamp;
 
@@ -23,15 +26,12 @@ import lombok.NoArgsConstructor;
 @Data
 @Entity
 @NoArgsConstructor
-@Table(name="user_table")
+@Table(name = "user_table")
 public class User {
 
 	@Id
 	@GeneratedValue
 	private Long id;
-	
-	@Column(insertable=false, updatable=false)
-	private String username;
 
 	@CreationTimestamp
 	@Column(nullable = false)
@@ -45,56 +45,50 @@ public class User {
 
 	@Embedded
 	@AttributeOverrides({
-        @AttributeOverride(name = "username", column = @Column(name = "username")),
-        @AttributeOverride(name = "password", column = @Column(name = "password")),
-})
+			@AttributeOverride(name = "username", column = @Column(name = "username")),
+			@AttributeOverride(name = "password", column = @Column(name = "password")),
+	})
 	private Credentials credentials;
 
 	@Embedded
 	@AttributeOverrides({
-        @AttributeOverride(name = "firstName", column = @Column(name = "firstName")),
-        @AttributeOverride(name = "lastName", column = @Column(name = "lastName")),
-        @AttributeOverride(name = "phone", column = @Column(name = "phone")),
-        @AttributeOverride(name = "email", column = @Column(name = "email"))
-})
+			@AttributeOverride(name = "firstName", column = @Column(name = "firstName")),
+			@AttributeOverride(name = "lastName", column = @Column(name = "lastName")),
+			@AttributeOverride(name = "phone", column = @Column(name = "phone")),
+			@AttributeOverride(name = "email", column = @Column(name = "email"))
+	})
 	private Profile profile;
 
 	@ManyToMany
 	@JoinTable(name = "followers_following")
-	private List<User> followers;
-	
+	private Set<User> followers = new HashSet<>();
+
+	@ManyToMany(mappedBy = "followers")
+	private Set<User> following = new HashSet<>();
+
 	@ManyToMany
-	@JoinTable(name = "followers")
-	private List<User> following;
-	
-	@ManyToMany
-	@JoinTable(name = "user_likes",
-		joinColumns = @JoinColumn(name = "user_id"),
-		inverseJoinColumns = @JoinColumn(name = "tweet_id"))
-	private List<Tweet> likedTweets;
+	@JoinTable(name = "user_likes", joinColumns = @JoinColumn(name = "user_id"), inverseJoinColumns = @JoinColumn(name = "tweet_id"))
+	private Set<Tweet> likedTweets = new HashSet<>();
 
 	@ManyToMany(mappedBy = "mentions")
-	private List<Tweet> userMentions;
-	
-	public boolean isDeleted() {
-		return deleted;
-	}
-	
-	public void addFollower(User follower) {
-		followers.add(follower);
-	}
-	
-	public void addFollowing(User follow) {
-		following.add(follow);
-	}
-	
-	public void removeFollower(User follower) {
-		followers.remove(follower);
-	}
-	
-	public void removeFollowing(User follow) {
-		followers.remove(follow);
+	private List<Tweet> userMentions = new ArrayList<>();
+
+	@Override
+	public boolean equals(Object obj) {
+		if (obj == null) {
+			return false;
+		}
+		if (!(obj instanceof User)) {
+			return false;
+		}
+		User user = (User) obj;
+		return this.credentials.getUsername().equals(user.getCredentials().getUsername())
+				&& this.id.equals(user.getId());
 	}
 
+	@Override
+	public int hashCode() {
+		return this.credentials.getUsername().hashCode() + this.id.hashCode();
+	}
 
 }
