@@ -32,9 +32,11 @@ import lombok.RequiredArgsConstructor;
 @RequiredArgsConstructor
 public class UserServiceImpl implements UserService {
 	private final UserRepository userRepository;
+	
+	private final TweetRepository tweetRepository;
+	
 	private final UserMapper userMapper;
 
-	private final TweetRepository tweetRepository;
 	private final TweetMapper tweetMapper;
 
 	private final CredentialsMapper credentialsMapper;
@@ -61,7 +63,7 @@ public class UserServiceImpl implements UserService {
 
 	private User getUserByUsername(String username) {
 		Optional<User> optionalUser = userRepository.findByCredentials_UsernameAndDeletedFalse(username);
-		if (optionalUser.isEmpty() || optionalUser.get().isDeleted()) {
+		if (optionalUser.isEmpty()) {
 			throw new NotFoundException("The specified user does not exist");
 		}
 		User user = optionalUser.get();
@@ -91,9 +93,19 @@ public class UserServiceImpl implements UserService {
 	@Override
 	public List<TweetResponseDto> getUserTweets(String username) {
 
-		List<Tweet> tweets = tweetRepository.findAllByAuthor_Credentials_UsernameAndDeletedFalse(username);
 
-		return tweetMapper.entitiesToDtos(tweets);
+		Optional<User> queriedUser = userRepository.findByCredentials_UsernameAndDeletedFalse(username);
+		if(queriedUser.isEmpty() || queriedUser.get().isDeleted()) {
+			throw new NotFoundException("User could not be found");
+		}
+		List<Tweet> allTweets = queriedUser.get().getTweets();
+		for(Tweet tweet : allTweets) {
+			if(tweet.isDeleted()) {
+				allTweets.remove(tweet);
+			}
+		}
+	
+		return tweetMapper.entitiesToDtos(allTweets);
 
 	}
 
@@ -210,7 +222,7 @@ public class UserServiceImpl implements UserService {
 			throw new BadRequestException("Credentials must include username and password and at least an email");
 		}
 		String username = credentials.getUsername();
-		Optional<User> optionalUser = userRepository.findByCredentials_UsernameAndDeletedFalse(username);
+		Optional<User> optionalUser = userRepository.findByCredentialsUsernameAndDeletedFalse(username);
 		if (optionalUser.isPresent()) {
 			User existingUser = optionalUser.get();
 			if (!existingUser.isDeleted()) {
@@ -241,15 +253,15 @@ public class UserServiceImpl implements UserService {
 		if (userToFollow.getFollowers().contains(lemming)) {
 			throw new BadRequestException("You are already following this user");
 		}
-		userToFollow.addFollower(lemming);
-		lemming.addFollowing(userToFollow);
-		userRepository.saveAndFlush(lemming);
+		userToFollow.getFollowers().add(lemming);
+		lemming.getFollowing().add(userToFollow);
 		userRepository.saveAndFlush(userToFollow);
+		userRepository.saveAndFlush(lemming);
 	}
 
 	@Override
 	public void removeFollow(String username, CredentialsDto credentialsDto) {
-		if (credentialsDto.getPassword() == null) {
+		if (credentialsDto.getPassword() == null || credentialsDto.getUsername() == null) {
 			throw new BadRequestException("You must include a username and password");
 		}
 		User userFollowing = getUserByUsername(username);
@@ -257,10 +269,10 @@ public class UserServiceImpl implements UserService {
 		if (!userFollowing.getFollowers().contains(noLongerALemming)) {
 			throw new BadRequestException("You are not currently following this user");
 		}
-		userFollowing.removeFollower(noLongerALemming);
-		noLongerALemming.removeFollowing(userFollowing);
-		userRepository.saveAndFlush(noLongerALemming);
+		userFollowing.getFollowers().remove(noLongerALemming);
+		noLongerALemming.getFollowing().remove(userFollowing);
 		userRepository.saveAndFlush(userFollowing);
+		userRepository.saveAndFlush(noLongerALemming);
 	}
 
 }

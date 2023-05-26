@@ -27,10 +27,9 @@ public class ValidateController {
 		return validateService.checkUsernameExists(username);
 	}
 
-	@Override
+	@GetMapping("/tag/exists/{label}")
 	public boolean checkTagExists(String label) {
-		Optional<Hashtag> optionalHashtag = hashtagRepository.findHashtagByLabel(label);
-		return optionalHashtag.isPresent();
+		return validateService.checkTagExists(label);
 	}
 
 	@GetMapping("/username/available/@{username}")

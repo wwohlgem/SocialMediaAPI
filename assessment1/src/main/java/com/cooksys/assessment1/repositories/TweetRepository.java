@@ -21,5 +21,6 @@ public interface TweetRepository extends JpaRepository<Tweet,Long> {
 
     // derived query for getContext()
     Set<Tweet> findByInReplyToOrderByPostedDesc(Tweet tweet);
+
 	
 }

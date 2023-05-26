@@ -2,9 +2,9 @@ package com.cooksys.assessment1.services.impl;
 
 import java.util.Optional;
 
-import com.cooksys.assessment1.entities.Hashtag;
 import org.springframework.stereotype.Service;
 
+import com.cooksys.assessment1.entities.Hashtag;
 import com.cooksys.assessment1.entities.User;
 import com.cooksys.assessment1.repositories.HashtagRepository;
 import com.cooksys.assessment1.repositories.UserRepository;
@@ -17,10 +17,8 @@ import lombok.RequiredArgsConstructor;
 public class ValidateServiceImpl implements ValidateService {
 
     private final UserRepository userRepository;
-//    private final UserMapper userMapper;
-    
+
     private final HashtagRepository hashtagRepository;
-//    private final HashtagMapper hashtagMapper;
 
     @Override
     public boolean checkUsernameExists(String username) {
@@ -29,20 +27,23 @@ public class ValidateServiceImpl implements ValidateService {
         //check if any of the usernames .equals(username)
         //if so, return true. False otherwise
 
-    	Optional<User> notDeletedUser = userRepository.findByCredentials_UsernameAndDeletedFalse(username);
+        Optional<User> notDeletedUser = userRepository.findByCredentialsUsernameAndDeletedFalse(username);
         return notDeletedUser.isPresent(); //if it's not empty, we found one, so true
     }
 
     @Override
     public boolean checkTagExists(String label) {
-        Optional<Hashtag> optionalHashtag = hashtagRepository.findHashtagByLabel("#" + label);
+        Optional<Hashtag> optionalHashtag = hashtagRepository.findHashtagByLabel(label);
         return optionalHashtag.isPresent();
     }
 
     @Override
     public boolean checkUsernameAvailable(String username) {
-        Optional<User> optionalUser = userRepository.findByCredentials_UsernameAndDeletedFalse(username);
-        return optionalUser.isEmpty();
+        Optional<User> optionalUser = userRepository.findByCredentialsUsername(username);
+        if(optionalUser.isEmpty() || optionalUser.get().isDeleted()) {
+            return true;
+        }
+        return false;
     }
-	
+    //hello
 }
