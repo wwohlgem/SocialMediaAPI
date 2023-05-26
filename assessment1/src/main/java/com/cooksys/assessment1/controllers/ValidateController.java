@@ -28,7 +28,7 @@ public class ValidateController {
 	}
 
 	@GetMapping("/tag/exists/{label}")
-	public boolean checkTagExists(String label) {
+	public boolean checkTagExists(@PathVariable String label) {
 		return validateService.checkTagExists(label);
 	}
 

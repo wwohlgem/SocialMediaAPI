@@ -387,7 +387,6 @@ public class TweetServiceImpl implements TweetService {
 
 		List<User> mentionedUsers = new ArrayList<>();
 		List<Hashtag> hashtags = new ArrayList<>();
-		List<Hashtag> newTags = new ArrayList<>();
 
 		for(User u : allUsers) {
 
@@ -398,14 +397,6 @@ public class TweetServiceImpl implements TweetService {
 			}
 		}
 
-		for(Hashtag h : allHashtags){
-
-			if (tweetRequestDto.getContent().contains("#" + h.getLabel())){
-
-				hashtags.add(h);
-
-			}
-		}
 
 		String[] wordsInContent = tweetRequestDto.getContent().split("\\s+");
 
@@ -413,35 +404,34 @@ public class TweetServiceImpl implements TweetService {
 			if(word.startsWith("#")){
 
 				Hashtag hashtag = new Hashtag();
-				hashtag.setLabel(word);
+				hashtag.setLabel(word.substring(1));
 				hashtag.setFirstUsed(tweetToPost.getPosted());
-				newTags.add(hashtag);
+				hashtags.add(hashtag);
 
 				if(!allHashtags.contains(hashtag)){
+
 					hashtagRepository.saveAndFlush(hashtag);
+
 				}
 
 			}
 		}
 
-		List<Hashtag> allTagsTogether = new ArrayList<>();
-		allTagsTogether.addAll(hashtags);
-		allTagsTogether.addAll(newTags);
 
-		tweetToPost.setHashtags(allTagsTogether);
+		tweetToPost.setHashtags(hashtags);
 		tweetToPost.setMentions(mentionedUsers);
 		tweetToPost.setAuthor(user);
 		tweetToPost.setContent(tweetRequestDto.getContent());
 		tweetToPost.setInReplyTo(validateAndGetTweetById(id));
+		tweetRepository.saveAndFlush(tweetToPost);
 
 
 		//need to update the replies for the tweet i am replying to
 		Tweet tweetReplyingTo = validateAndGetTweetById(id);
-		List<Tweet> tweetReplyingToRepliesList = tweetReplyingTo.getReplies();
-		tweetReplyingToRepliesList.add(tweetToPost);
+		tweetReplyingTo.getReplies().add(tweetToPost);
 		tweetRepository.saveAndFlush(tweetReplyingTo);
 
-		return tweetMapper.entityToDto(tweetRepository.saveAndFlush(tweetToPost));
+		return tweetMapper.entityToDto(tweetToPost);
 
 	}
 }
