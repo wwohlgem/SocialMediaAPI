@@ -57,7 +57,7 @@ public class TweetServiceImpl implements TweetService {
 	}
 
 	private User getUserByUsername(String username) {
-		Optional<User> optionalUser = userRepository.findByCredentialsUsername(username);
+		Optional<User> optionalUser = userRepository.findByCredentials_UsernameAndDeletedFalse(username);
 		if (optionalUser.isEmpty()) {
 			throw new NotFoundException("No user found.");
 		}
@@ -156,7 +156,6 @@ public class TweetServiceImpl implements TweetService {
 				} else {
 					optionalHashtag.get().setLastUsed(Timestamp.valueOf(LocalDateTime.now()));
 				}
-				tweetToSave.getHashtags().add(hashtag);
 				hashtagRepository.saveAndFlush(hashtag);
 			}
 			if(word.startsWith("@")) {

@@ -60,7 +60,7 @@ public class UserServiceImpl implements UserService {
 	}
 	
 	private User getUserByUsername(String username) {
-		Optional<User> optionalUser = userRepository.findByCredentialsUsername(username);
+		Optional<User> optionalUser = userRepository.findByCredentials_UsernameAndDeletedFalse(username);
 		if (optionalUser.isEmpty() || optionalUser.get().isDeleted()) {
 			throw new NotFoundException("The specified user does not exist");
 		}
