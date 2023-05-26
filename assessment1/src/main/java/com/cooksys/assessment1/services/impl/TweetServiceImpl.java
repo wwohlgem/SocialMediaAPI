@@ -1,8 +1,8 @@
 package com.cooksys.assessment1.services.impl;
 
-import java.util.ArrayList;
-import java.util.List;
-import java.util.Optional;
+import java.sql.Timestamp;
+import java.time.LocalDateTime;
+import java.util.*;
 
 import org.springframework.stereotype.Service;
 
@@ -27,6 +27,7 @@ import com.cooksys.assessment1.repositories.UserRepository;
 import com.cooksys.assessment1.services.TweetService;
 import com.cooksys.assessment1.services.ValidateService;
 
+import jakarta.transaction.Transactional;
 import lombok.RequiredArgsConstructor;
 
 @Service
@@ -54,7 +55,7 @@ public class TweetServiceImpl implements TweetService {
 	}
 
 	private User getUserByUsername(String username) {
-		Optional<User> optionalUser = userRepository.findByCredentialsUsername(username);
+		Optional<User> optionalUser = userRepository.findByCredentials_UsernameAndDeletedFalse(username);
 		if (optionalUser.isEmpty()) {
 			throw new NotFoundException("No user found.");
 		}
@@ -63,6 +64,45 @@ public class TweetServiceImpl implements TweetService {
 			throw new BadRequestException("User has been flagged as deleted.");
 		}
 		return user;
+	}
+
+	private void getReplyThread(Tweet tweet, List<Tweet> repliesInThread){
+
+		//starting with a tweet, we want to get all of the replies that arent deleted
+		//if the reply is deleted, we want the non-deleted reply to the reply
+
+		if(!tweet.isDeleted()){
+			repliesInThread.add(tweet);
+		}
+
+		for(Tweet reply : tweet.getReplies()){
+			getReplyThread(reply, repliesInThread);
+		}
+	}
+
+	private Set<Tweet> setBefore(Tweet tweet, Set<Tweet> replies) {
+		if (tweet != null) {
+			if (!replies.contains(tweet)) {
+				if (!tweet.isDeleted()) {
+					replies.add(tweet);
+				}
+				setBefore(tweet.getInReplyTo(), replies);
+			}
+		}
+		return replies;
+	}
+
+	private Set<Tweet> setAfter(Tweet tweet, Set<Tweet> replies) {
+		Set<Tweet> tweetSet = tweetRepository.findByInReplyToOrderByPostedDesc(tweet);
+		for (Tweet twt : tweetSet) {
+			if (twt != null && !replies.contains(tweet)) {
+				if (!twt.isDeleted()) {
+					replies.add(twt);
+				}
+				setAfter(twt, replies);
+			}
+		}
+		return replies;
 	}
 
 	@Override
@@ -121,62 +161,56 @@ public class TweetServiceImpl implements TweetService {
 	}
 
 	@Override
+	@Transactional
 	public TweetResponseDto createTweet(TweetRequestDto tweetRequestDto) {
-
-		/*
-		 * Creates a new simple tweet, with the author set to the user identified by the
-		 * credentials in the request body. If the given credentials do not match an
-		 * active user in the database, an error should be sent in lieu of a response.
-		 * 
-		 * The response should contain the newly-created tweet. Because this always
-		 * creates a simple tweet, it must have a content property and may not have
-		 * inReplyTo or repostOf properties. IMPORTANT: when a tweet with content is
-		 * created, the server must process the tweet's content for @{username} mentions
-		 * and #{hashtag} tags. There is no way to create hashtags or create mentions
-		 * from the API, so this must be handled automatically!
-		 * 
-		 * 
-		 * STILL NEED TO parse the strings for mentions and hashtags
-		 */
+		if (tweetRequestDto.getContent() == null || tweetRequestDto.getCredentials() == null
+				|| tweetRequestDto.getCredentials().getPassword() == null) {
+			throw new BadRequestException("The content and credentials are required fields");
+		}
 
 		Tweet tweetToSave = tweetMapper.dtoToEntity(tweetRequestDto);
 		CredentialsDto credentialsDto = tweetRequestDto.getCredentials();
-		User tweetAuthor = getUserByUsername(credentialsDto.getUsername());
-		List<User> mentions = tweetToSave.getMentions();
+		Optional<User> optionalUser = userRepository
+				.findByCredentials_UsernameAndDeletedFalse(credentialsDto.getUsername());
+		if (optionalUser.isEmpty() || optionalUser.get().isDeleted()) {
+			throw new NotFoundException("No user found by that username");
+		}
 
+		User tweetAuthor = optionalUser.get();
+		tweetToSave.setAuthor(tweetAuthor);
+
+		List<User> mentions = new ArrayList<>();
+		List<Hashtag> allHashtags = new ArrayList<>();
 		String[] wordsInContent = tweetRequestDto.getContent().split("\\s+");
 
-		List<Hashtag> allHashtags = hashtagRepository.findAll();
 		for (String word : wordsInContent) {
 			if (word.startsWith("#")) {
-				
+
+				Optional<Hashtag> optionalHashtag = hashtagRepository.findHashtagByLabel(word);
 				Hashtag hashtag = new Hashtag();
 				hashtag.setLabel(word);
 				hashtag.setFirstUsed(tweetToSave.getPosted());
-				if(!allHashtags.contains(hashtag)) {
+				if (!optionalHashtag.isPresent()) {
+					hashtag.setLabel(word);
 					allHashtags.add(hashtag);
-					hashtagRepository.saveAndFlush(hashtag);					
-				}
-			}
-			
-			if(word.startsWith("@")) {
-				if(mentions != null) {
-					User mentionedUser = getUserByUsername(word.substring(1));
-					tweetToSave.addMention(mentionedUser);
+
 				} else {
-					mentions = new ArrayList<>();
-					User mentionedUser = getUserByUsername(word.substring(1));
-					mentions.add(mentionedUser);
+					optionalHashtag.get().setLastUsed(Timestamp.valueOf(LocalDateTime.now()));
 				}
-				tweetToSave.setMentions(mentions);
+				tweetToSave.setHashtags(allHashtags);
+				hashtagRepository.saveAndFlush(hashtag);
 			}
+			if (word.startsWith("@")) {
+				User mentionedUser = getUserByUsername(word.substring(1));
+				mentions.add(mentionedUser);
+			}
+			tweetToSave.setMentions(mentions);
 		}
-		
+		tweetToSave.setHashtags(allHashtags);
+		tweetToSave.setContent(tweetRequestDto.getContent());
 		userRepository.saveAndFlush(tweetAuthor);
-		tweetToSave.setAuthor(tweetAuthor);
-		tweetRepository.saveAndFlush(tweetToSave);
-		return tweetMapper.entityToDto(tweetToSave);
-		
+		return tweetMapper.entityToDto(tweetRepository.saveAndFlush(tweetToSave));
+
 	}
 
 	@Override
@@ -194,6 +228,7 @@ public class TweetServiceImpl implements TweetService {
 			throw new BadRequestException("You have already like this tweet");
 		}
 		tweetToLike.getLikes().add(currentUser);
+		currentUser.getLikedTweets().add(tweetToLike);
 		tweetRepository.saveAndFlush(tweetToLike);
 		userRepository.saveAndFlush(currentUser);
 	}
@@ -239,25 +274,32 @@ public class TweetServiceImpl implements TweetService {
 
 	@Override
 	public TweetResponseDto repostTweet(Long id, CredentialsDto credentialsDto) {
-		//creates a repost of the tweet with given id
-		//the author of the repost should match the user in the credentials provided ( so setAuthor() to our user )
-		//if tweet doesn't exist or credentials do not match a user send error
+		// creates a repost of the tweet with given id
+		// the author of the repost should match the user in the credentials provided (
+		// so setAuthor() to our user )
+		// if tweet doesn't exist or credentials do not match a user send error
 
-		//content is not allowed. RepostOf property must be set.
+		// content is not allowed. RepostOf property must be set.
 
-		//respond with the new tweet
+		// respond with the new tweet
 
 		validateUserByCredentials(credentialsDto);
 		Tweet tweetToRepost = validateAndGetTweetById(id);
 		Tweet repostedTweet = new Tweet();
 
-		User userAuthor = userRepository.findByCredentialsAndDeletedFalse(credentialsMapper.dtoToEntity(credentialsDto)).get();
+		User userAuthor = userRepository.findByCredentialsAndDeletedFalse(credentialsMapper.dtoToEntity(credentialsDto))
+				.get();
 
-//		repostedTweet.setContent(tweetToRepost.getContent());
+		repostedTweet.setContent(tweetToRepost.getContent());
 		repostedTweet.setAuthor(userAuthor);
 		repostedTweet.setRepostOf(tweetToRepost);
 
-		return tweetMapper.entityToDto(tweetRepository.saveAndFlush(repostedTweet));
+		tweetRepository.saveAndFlush(repostedTweet);
+
+		tweetToRepost.getReposts().add(tweetToRepost);
+		tweetRepository.saveAndFlush(tweetToRepost);
+
+		return tweetMapper.entityToDto((repostedTweet));
 	}
 
 	@Override
@@ -313,55 +355,102 @@ public class TweetServiceImpl implements TweetService {
 		return tweetMapper.entitiesToDtos(replies);
 	}
 
+//	@Override
+//	public ContextDto getContext(Long id) {
+//		Tweet queriedTweet = getTweet(id);
+//		TweetResponseDto target = tweetMapper.entityToDto(queriedTweet);
+//
+//		SortedSet<Tweet> beforeSet = new TreeSet<>(Comparator.comparing(Tweet::getPosted));
+//		setBefore(queriedTweet.getInReplyTo(), beforeSet);
+//		List<TweetResponseDto> beforeDtos = tweetMapper.setEntitiesToDtos(beforeSet);
+//
+//		HashSet<Tweet> afterSet = new HashSet<>();
+//		setAfter(queriedTweet, afterSet);
+//		SortedSet<Tweet> afterSetSorted = new TreeSet<>(Comparator.comparing(Tweet::getPosted));
+//
+//		afterSetSorted.addAll(afterSet);
+//		List<TweetResponseDto> afterDtos = tweetMapper.setEntitiesToDtos(afterSetSorted);
+//
+//		ContextDto context = new ContextDto(target, beforeDtos, afterDtos);
+//		return context;
+//	}
+
+
+//	@Override
+//	public ContextDto getContext(Long id) {
+//		Tweet targetTweet = validateAndGetTweetById(id);
+//		List<Tweet> tweetsBefore = new ArrayList<>();
+//		List<Tweet> tweetsAfter = new ArrayList<>();
+//
+//		// Collect tweets before the target tweet (up to the one it was initially replying to)
+//		Tweet parentTweet = targetTweet.getInReplyTo();
+//		for(Tweet t : parentTweet.getReplies()){
+//			if(!t.isDeleted() && t.getPosted().before(targetTweet.getPosted())){
+//				tweetsBefore.add(t);
+//				getReplyThread(t, tweetsBefore);
+//
+//			}
+//		}
+//
+//		// Collect tweets after the target tweet (including non-deleted replies to deleted tweets)
+//		getReplyThread(targetTweet, tweetsAfter);
+//
+//		tweetsBefore.sort(Comparator.comparing(Tweet::getPosted));
+//		tweetsAfter.sort(Comparator.comparing(Tweet::getPosted));
+//
+//		ContextDto contextDto = new ContextDto();
+//		contextDto.setTarget(tweetMapper.entityToDto(targetTweet));
+//		contextDto.setBefore(tweetMapper.entitiesToDtos(tweetsBefore));
+//		contextDto.setAfter(tweetMapper.entitiesToDtos(tweetsAfter));
+//
+//		return contextDto;
+//	}
+
 	@Override
 	public ContextDto getContext(Long id) {
 
-		//want to return the ContextDto for the given tweet
-		//send error if tweet doesn't exists
-		//we want to exclude deleted replies, but want to still include the replies to the deleted reply (if they aren't deleted)
-
-		Tweet targetTweet = validateAndGetTweetById(id);
-		List<Tweet> tweetsBefore = new ArrayList<>();
-		List<Tweet> tweetsAfter = new ArrayList<>();
-
-		//if the reply is not deleted add it
-		//if it is deleted, add the non-deleted replies to the replies
-		//maybe need a while loop here?
-		for(Tweet t : targetTweet.getReplies()){
-
-			if(!t.isDeleted()){
-
-				tweetsAfter.add(t);
-
-			}
-			else{
-
-				for(Tweet tw : t.getReplies()){
-
-					if(!tw.isDeleted()){
-						tweetsAfter.add(tw);
-					}
-				}
-			}
-		}
-
-		//need to get all the tweets that came before it, starting at the beginning tweet in the thread
-		Tweet tweetTargetIsReplyingTo = targetTweet.getInReplyTo();
-
-		for(Tweet t : tweetTargetIsReplyingTo.getReplies()){
-
-			if(t.getPosted().before(targetTweet.getPosted()) && !t.isDeleted()){
-				tweetsBefore.add(t);
-			}
-		}
-
 		ContextDto contextDto = new ContextDto();
-		contextDto.setTarget(tweetMapper.entityToDto(targetTweet));
-		contextDto.setBefore(tweetMapper.entitiesToDtos(tweetsBefore));
-		contextDto.setAfter(tweetMapper.entitiesToDtos(tweetsAfter));
+		Tweet contextTweet = validateAndGetTweetById(id);
+
+		if (contextTweet.isDeleted() || contextTweet.equals(null)) {
+			throw new NotFoundException("Not Found");
+		}
+
+		Tweet beforeTweet = contextTweet.getInReplyTo();
+		List<Tweet> before = new ArrayList<Tweet>();
+		List<Tweet> after = contextTweet.getReplies();
+		List<Tweet> afterTweets = new ArrayList<Tweet>();
+
+		afterTweets.addAll(after);
+
+		while (beforeTweet != null) {
+			before.add(beforeTweet);
+			beforeTweet = beforeTweet.getInReplyTo();
+		}
+		for (Tweet tweet : after) {
+			if (tweet.getReplies() != null) {
+				afterTweets.addAll(tweet.getReplies());
+			}
+		}
+		for (Tweet tweet : before) {
+			if (tweet.isDeleted()) {
+				before.remove(tweet);
+			}
+		}
+		for (Tweet tweet : after) {
+			if (tweet.isDeleted()) {
+				after.remove(tweet);
+			}
+		}
+
+		contextDto.setBefore(tweetMapper.entitiesToDtos(before));
+		contextDto.setTarget(tweetMapper.entityToDto(contextTweet));
+		contextDto.setAfter(tweetMapper.entitiesToDtos(afterTweets));
 
 		return contextDto;
+
 	}
+
 
 	@Override
 	public List<UserResponseDto> getLikers(Long id) {
@@ -385,7 +474,6 @@ public class TweetServiceImpl implements TweetService {
 
 		List<User> mentionedUsers = new ArrayList<>();
 		List<Hashtag> hashtags = new ArrayList<>();
-		List<Hashtag> newTags = new ArrayList<>();
 
 		for(User u : allUsers) {
 
@@ -396,14 +484,6 @@ public class TweetServiceImpl implements TweetService {
 			}
 		}
 
-		for(Hashtag h : allHashtags){
-
-			if (tweetRequestDto.getContent().contains("#" + h.getLabel())){
-
-				hashtags.add(h);
-
-			}
-		}
 
 		String[] wordsInContent = tweetRequestDto.getContent().split("\\s+");
 
@@ -413,26 +493,31 @@ public class TweetServiceImpl implements TweetService {
 				Hashtag hashtag = new Hashtag();
 				hashtag.setLabel(word);
 				hashtag.setFirstUsed(tweetToPost.getPosted());
-				newTags.add(hashtag);
+				hashtags.add(hashtag);
 
 				if(!allHashtags.contains(hashtag)){
-					hashtagRepository.saveAndFlush(hashtag);
-				}
 
+					hashtagRepository.saveAndFlush(hashtag);
+
+				}
 			}
 		}
 
-		List<Hashtag> allTagsTogether = new ArrayList<>();
-		allTagsTogether.addAll(hashtags);
-		allTagsTogether.addAll(newTags);
 
-		tweetToPost.setHashtags(allTagsTogether);
+
+		tweetToPost.setHashtags(hashtags);
 		tweetToPost.setMentions(mentionedUsers);
 		tweetToPost.setAuthor(user);
-		tweetToPost.setInReplyTo(validateAndGetTweetById(id));//need to think about how to retrieve this info. We only get the user credentials and the tweet content
+		tweetToPost.setInReplyTo(validateAndGetTweetById(id));
+		tweetToPost.setContent(tweetRequestDto.getContent());
+		tweetRepository.saveAndFlush(tweetToPost);
 
+		//need to update the replies for the tweet i am replying to
+		Tweet tweetReplyingTo = validateAndGetTweetById(id);
+		tweetReplyingTo.getReplies().add(tweetToPost);
+		tweetRepository.saveAndFlush(tweetReplyingTo);
 
-		return tweetMapper.entityToDto(tweetRepository.saveAndFlush(tweetToPost));
+		return tweetMapper.entityToDto(tweetToPost);
 
 	}
 }

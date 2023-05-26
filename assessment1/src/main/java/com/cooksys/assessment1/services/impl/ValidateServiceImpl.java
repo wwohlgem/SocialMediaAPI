@@ -2,6 +2,7 @@ package com.cooksys.assessment1.services.impl;
 
 import java.util.Optional;
 
+import com.cooksys.assessment1.entities.Hashtag;
 import org.springframework.stereotype.Service;
 
 import com.cooksys.assessment1.entities.User;
@@ -31,10 +32,17 @@ public class ValidateServiceImpl implements ValidateService {
     	Optional<User> notDeletedUser = userRepository.findByCredentials_UsernameAndDeletedFalse(username);
         return notDeletedUser.isPresent(); //if it's not empty, we found one, so true
     }
-    
+
     @Override
     public boolean checkTagExists(String label) {
-    	return hashtagRepository.findHashtagByLabel(label).isPresent();
+        Optional<Hashtag> optionalHashtag = hashtagRepository.findHashtagByLabel("#" + label);
+        return optionalHashtag.isPresent();
+    }
+
+    @Override
+    public boolean checkUsernameAvailable(String username) {
+        Optional<User> optionalUser = userRepository.findByCredentials_UsernameAndDeletedFalse(username);
+        return optionalUser.isEmpty();
     }
 	
 }

@@ -1,8 +1,13 @@
 package com.cooksys.assessment1.services.impl;
 
+import java.util.ArrayList;
 import java.util.List;
 import java.util.Optional;
 
+import com.cooksys.assessment1.entities.Tweet;
+import com.cooksys.assessment1.mappers.TweetMapper;
+import com.cooksys.assessment1.model.TweetResponseDto;
+import com.cooksys.assessment1.repositories.TweetRepository;
 import org.springframework.stereotype.Service;
 
 import com.cooksys.assessment1.entities.Hashtag;
@@ -21,19 +26,31 @@ public class HashtagServiceImpl implements HashtagService {
     private final HashtagRepository hashtagRepository;
     
     private final HashtagMapper hashtagMapper;
+    private final TweetRepository tweetRepository;
+    private final TweetMapper tweetMapper;
     
     @Override
     public List<HashtagDto> getAllHashtags() {
-    	return hashtagMapper.entitiesToDtos(hashtagRepository.findAll());
+        return hashtagMapper.entitiesToDtos(hashtagRepository.findAll());
     }
     
     @Override
-    public HashtagDto getTagByLabel(String label) {
+    public List<TweetResponseDto> getTagsByLabel(String label) {
     	Optional<Hashtag> queriedHashtag = hashtagRepository.findHashtagByLabel("#" + label);
-    	if(queriedHashtag.isEmpty()) {
-    		throw new NotFoundException("The requested Hashtag doesn't exist");
-    	}
-    	return hashtagMapper.entityToDto(queriedHashtag.get());
+
+        if(queriedHashtag.isEmpty()) {
+            throw new NotFoundException("The requested Hashtag doesn't exist");
+        }
+
+        List<Tweet> tweetsWithTag = new ArrayList<>();
+
+        for(Tweet tweet : tweetRepository.findAll()){
+            if(!tweet.isDeleted() && tweet.getHashtags().contains(queriedHashtag.get())){
+                tweetsWithTag.add(tweet);
+            }
+        }
+
+    	return tweetMapper.entitiesToDtos(tweetsWithTag);
     }
 
 }
