@@ -138,7 +138,7 @@ public class TweetServiceImpl implements TweetService {
 		} 
 		
 		User tweetAuthor = optionalUser.get();
-		
+		tweetToSave.setAuthor(tweetAuthor);
 		
 		List<User> mentions = tweetToSave.getMentions();
 
