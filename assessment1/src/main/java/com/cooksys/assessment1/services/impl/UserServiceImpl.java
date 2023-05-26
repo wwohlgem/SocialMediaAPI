@@ -1,9 +1,12 @@
 package com.cooksys.assessment1.services.impl;
 
+import java.sql.Timestamp;
+import java.time.LocalDateTime;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Optional;
 
+import com.cooksys.assessment1.model.*;
 import org.springframework.stereotype.Service;
 
 import com.cooksys.assessment1.entities.Tweet;
@@ -15,10 +18,6 @@ import com.cooksys.assessment1.mappers.CredentialsMapper;
 import com.cooksys.assessment1.mappers.ProfileMapper;
 import com.cooksys.assessment1.mappers.TweetMapper;
 import com.cooksys.assessment1.mappers.UserMapper;
-import com.cooksys.assessment1.model.CredentialsDto;
-import com.cooksys.assessment1.model.TweetResponseDto;
-import com.cooksys.assessment1.model.UserRequestDto;
-import com.cooksys.assessment1.model.UserResponseDto;
 import com.cooksys.assessment1.repositories.TweetRepository;
 import com.cooksys.assessment1.repositories.UserRepository;
 import com.cooksys.assessment1.services.UserService;
@@ -76,14 +75,18 @@ public class UserServiceImpl implements UserService {
 
         User userToDelete = userRepository.findByCredentialsAndDeletedFalse(credentialsMapper.dtoToEntity(credentialsDto)).get();
 
+		UserResponseDto userBeforeDeleting = null;
+
         if(userToDelete.getCredentials().getUsername().equals(username)){
 
             //only want the user to be able to delete their own profile. So their username must match the one they passed in the credentials
-            userToDelete.setDeleted(true);
-            return userMapper.entityToDto(userRepository.saveAndFlush(userToDelete));
+            userBeforeDeleting = userMapper.entityToDto(userToDelete);
+			userToDelete.setDeleted(true);
+            userRepository.saveAndFlush(userToDelete);
 
         }
         else throw new NotAuthorizedException("You cannot delete someone else's profile");
+		return userBeforeDeleting;
     }
 
     @Override
@@ -184,20 +187,32 @@ public class UserServiceImpl implements UserService {
     	}
     	return tweetMapper.entitiesToDtos(userFeed); 
     }
-    
-    @Override
-    public UserResponseDto createUser(UserRequestDto userRequestDto) {
-    	User userToSave = userMapper.dtoToEntity(userRequestDto);
-    	CredentialsDto credentials = userRequestDto.getCredentials();
-    	String username = credentials.getUsername();
-    	Optional<User> optionalUser = userRepository.findByCredentialsUsername(username);
-    	if(optionalUser.isPresent()) {
-    		throw new BadRequestException("That username already exists, Please choose another username.");
-    	} else {
-    		userRepository.saveAndFlush(userToSave);
-    		return userMapper.entityToDto(userToSave);
-    	}
-    }
+
+	@Override
+	public UserResponseDto createUser(UserRequestDto userRequestDto) {
+		if(userRequestDto == null || userRequestDto.getCredentials() == null || userRequestDto.getProfile() == null) {
+			throw new BadRequestException("You must include a username, password, and at least an email");
+		}
+		User userToSave = userMapper.dtoToEntity(userRequestDto);
+		CredentialsDto credentials = userRequestDto.getCredentials();
+		ProfileDto userProfile = userRequestDto.getProfile();
+
+		if(credentials.getPassword() == null || credentials.getUsername() == null || userProfile.getEmail() == null) {
+			throw new BadRequestException("Credentials must include username and password and at least an email");
+		}
+		String username = credentials.getUsername();
+		Optional<User> optionalUser = userRepository.findByCredentials_UsernameAndDeletedFalse(username);
+		if(optionalUser.isPresent()) {
+			throw new BadRequestException("That username already exists, Please choose another username.");
+		} else {
+			userToSave.setCredentials(credentialsMapper.dtoToEntity(credentials));
+			userToSave.setProfile(profileMapper.dtoToEntity(userProfile));
+
+			userToSave.setJoined(Timestamp.valueOf(LocalDateTime.now()));
+			userRepository.saveAndFlush(userToSave);
+			return userMapper.entityToDto(userToSave);
+		}
+	}
     
     @Override
     public void addFollow(String username, CredentialsDto credentialsDto) {

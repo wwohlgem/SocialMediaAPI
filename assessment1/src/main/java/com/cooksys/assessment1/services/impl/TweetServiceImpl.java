@@ -138,7 +138,6 @@ public class TweetServiceImpl implements TweetService {
 		 * 
 		 * STILL NEED TO parse the strings for mentions and hashtags
 		 */
-		
 
 		Tweet tweetToSave = tweetMapper.dtoToEntity(tweetRequestDto);
 		CredentialsDto credentialsDto = tweetRequestDto.getCredentials();
