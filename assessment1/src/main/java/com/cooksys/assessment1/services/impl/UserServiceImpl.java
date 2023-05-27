@@ -111,27 +111,25 @@ public class UserServiceImpl implements UserService {
 
 	@Override
 	public UserResponseDto deleteUser(CredentialsDto credentialsDto, String username) {
-		// if the user exists, mark as deleted and return the useResponseDto
-		// if the user doesn't exist, throw new NotFoundException
-		// maybe make a helper method for validation
+		//if the user exists, mark as deleted and return the useResponseDto
+		//if the user doesn't exist, throw new NotFoundException
+		//maybe make a helper method for validation
 
 		validateByCredentials(credentialsDto);
 
-		User userToDelete = userRepository
-				.findByCredentialsAndDeletedFalse(credentialsMapper.dtoToEntity(credentialsDto)).get();
+		User userToDelete = userRepository.findByCredentialsAndDeletedFalse(credentialsMapper.dtoToEntity(credentialsDto)).get();
 
 		UserResponseDto userBeforeDeleting = null;
 
-		if (userToDelete.getCredentials().getUsername().equals(username)) {
+		if(userToDelete.getCredentials().getUsername().equals(username) && userToDelete.getCredentials().getPassword().equals(credentialsDto.getPassword())){
 
-			// only want the user to be able to delete their own profile. So their username
-			// must match the one they passed in the credentials
+			//only want the user to be able to delete their own profile. So their username must match the one they passed in the credentials
 			userBeforeDeleting = userMapper.entityToDto(userToDelete);
 			userToDelete.setDeleted(true);
 			userRepository.saveAndFlush(userToDelete);
 
-		} else
-			throw new NotAuthorizedException("You cannot delete someone else's profile");
+		}
+		else {throw new NotAuthorizedException("You cannot delete someone else's profile");}
 		return userBeforeDeleting;
 	}
 
